@@ -15,7 +15,7 @@ namespace Topmost
 {
     public partial class MainWindow : Window
     {
-        public Version version = new Version("1.0");
+        public Version version = new Version("1.1");
 
         private const int WM_HOTKEY = 0x0312;
         private const long WS_EX_TOPMOST = 0x00000008L;
@@ -70,6 +70,12 @@ namespace Topmost
         {
             InitializeComponent();
 
+            if (checkRunning())
+            {
+                MessageBox.Show("Another instance is already running!", "Instance running", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(0);
+            }
+
             saveFile = Path.Combine(saveDir, "key.txt");
 
             if (!Directory.Exists(saveDir))
@@ -96,6 +102,18 @@ namespace Topmost
             source.AddHook(HwndHook);
 
             RegisterHotKey(ownHWnd, hotkeyId, mod, key);
+        }
+
+        private bool checkRunning()
+        {
+            Process[] procs = Process.GetProcessesByName(Assembly.GetExecutingAssembly().GetName().Name);
+            for (int i = 0; i < procs.Length; i++)
+            {
+                if (procs[i].Id == Process.GetCurrentProcess().Id)
+                    continue;
+                return true;
+            }
+            return false;
         }
 
         private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -373,6 +391,14 @@ namespace Topmost
             checkStateThread.Start();
         }
 
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+                checkState = false;
+
+            updateUI();
+        }
+
         public enum ModifierKey : uint
         {
             ALT = 0x0001,
@@ -579,14 +605,6 @@ namespace Topmost
             Noname = 0xFC,
             PA1 = 0xFD,
             OEMClear = 0xFE
-        }
-
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-                checkState = false;
-
-            updateUI();
         }
     }
 }
